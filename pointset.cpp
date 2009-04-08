@@ -20,17 +20,18 @@ void PointSet::display_in_console() const {
 
 }
 
-void PointSet::draw_points(CImg<unsigned char> &img) const {
-    const unsigned char color[] = { 255,128,64 };
+
+
+void PointSet::draw_points(CImg<unsigned char> &img, const unsigned char color[]) const {
     int radius = 5;
     for (unsigned int i=0;i<this->size();i++){
-        img.draw_circle(((*this)[i]).x,((*this)[i]).y,radius,color);
+        img.draw_circle((*this)[i].x,(*this)[i].y,radius,color);
     }
 
 }
 
-void PointSet::display(CImg<unsigned char> &img) const {
-    draw_points(img);
+void PointSet::display(CImg<unsigned char> &img,const unsigned char color[]) const {
+    draw_points(img,color);
     img.display("Nice PointSet, isn't it?");
 
 
