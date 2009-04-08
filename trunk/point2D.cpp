@@ -18,7 +18,7 @@ Point2D::Point2D(double x, double y){
 Point2D::~Point2D(){
 }
 
-void Point2D::display() const {
+void Point2D::display_in_console() const {
     cout << x << endl << y << endl;
 
 }

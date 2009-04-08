@@ -12,7 +12,7 @@ class Point2D {
         ~Point2D();
         double get_dist_with(Point2D &other);
         double get_sd_with(Point2D &other);
-        void display() const;
+        void display_in_console() const;
 
 
 
