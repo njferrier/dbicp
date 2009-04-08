@@ -53,12 +53,12 @@ Transfo::~Transfo(){
 }
 
 
-void Transfo::display(){
+void Transfo::display() const {
     cout << t11 << "\t" << t12 << "\t" << t13 << "\t" << t14 << "\t" << t15 << "\t" << t16 << endl << t21 << "\t" << t22 << "\t" << t23 << "\t" << t24 << "\t" << t25 << "\t" << t26 << endl;
 
 }
 
-Point2D Transfo::operator()(Point2D point){
+Point2D Transfo::operator()(Point2D point) const {
     return Point2D(t11 + point.x*t12 + point.y*t13 + point.x*point.x*t14 + point.x*point.y*t15 + point.y*point.y*t16,
                    t21 + point.x*t22 + point.y*t23 + point.x*point.x*t24 + point.x*point.y*t25 + point.y*point.y*t26);
 }

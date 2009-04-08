@@ -18,11 +18,15 @@ Point2D::Point2D(double x, double y){
 Point2D::~Point2D(){
 }
 
-void Point2D::display(){
+void Point2D::display() const {
     cout << x << endl << y << endl;
 
 }
 
 double Point2D::get_dist_with(Point2D &other){
     return sqrt(pow(x-other.x,2)+pow(y-other.y,2));
+}
+
+double Point2D::get_sd_with(Point2D &other){
+    return pow(x-other.x,2)+pow(y-other.y,2);
 }

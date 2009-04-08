@@ -2,6 +2,7 @@
 #include "transfo.h"
 #include "Point2D.h"
 #include "similarity.h"
+#include "pointset.h"
 
 using namespace std;
 
@@ -25,6 +26,9 @@ int main() {
     double d=a.get_dist_with(b);
     cout << endl << d;
 
+    PointSet ps;
+    ps.fill_with_random(10);
+    ps.display();
 
 
 
