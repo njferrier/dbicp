@@ -10,7 +10,10 @@ using namespace std;
 using namespace cimg_library;
 
 int main() {
-    Point2D a(1.5,3.44);
+    PointSet ps,ps1,ps2;
+    Similarity S(50,0.7,0.6,100);
+
+   /* Point2D a(1.5,3.44);
     a.display_in_console();
     cout << endl;
 
@@ -20,7 +23,7 @@ int main() {
     cout << endl;
     T2(a).display_in_console();
 
-    Similarity S(50,0.7,0.6,100);
+
     S.display();
 
     cout << endl;
@@ -29,10 +32,9 @@ int main() {
     double d=a.get_dist_with(b);
     cout << endl << d;
 
-    PointSet ps,ps1,ps2;
     ps.fill_with_random(10);
     ps.display_in_console();
-
+*/
 
 
     /**
@@ -42,13 +44,13 @@ int main() {
     ps1.fill_with_set1(40);
     S(ps1,ps2);
 
-    cout << endl <<"PS1" << endl;
+/*    cout << endl <<"PS1" << endl;
     ps1.display_in_console();
 
     cout << endl <<"PS2" << endl;
     ps2.display_in_console();
 
-
+*/
     DBICP yeah(ps1,ps2);
 
 
