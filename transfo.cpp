@@ -54,7 +54,7 @@ Transfo::~Transfo(){
 
 
 void Transfo::display() const {
-    cout << t11 << "\t" << t12 << "\t" << t13 << "\t" << t14 << "\t" << t15 << "\t" << t16 << endl << t21 << "\t" << t22 << "\t" << t23 << "\t" << t24 << "\t" << t25 << "\t" << t26 << endl;
+    cout << t11 << "\t" << t12 << "\t" << t13 << "\t" << t14 << "\t" << t15 << "\t" << t16 << endl << t21 << "\t" << t22 << "\t" << t23 << "\t" << t24 << "\t" << t25 << "\t" << t26 << endl << endl;
 
 }
 

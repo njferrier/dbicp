@@ -10,9 +10,14 @@ using namespace std;
 using namespace cimg_library;
 
 int main() {
+    cout << "=====================================================" << endl
+         << "          Welcome in DBICP demo program" << endl
+         << "=====================================================" << endl << endl;
+
     PointSet ps,ps1,ps2;
     Similarity S(50,0.7,0.6,100);
-    Similarity S2;
+    cout << "Similarity used to move points:" << endl;
+    S.display();
 
    /* Point2D a(1.5,3.44);
     a.display_in_console();
