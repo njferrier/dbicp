@@ -1,12 +1,11 @@
 #ifndef TRANSFO_H
 #define TRANSFO_H
 
-#include "Point2D.h"
-
+#include "point2D.h"
+#include "pointset.h"
 
 class Transfo {
 public:
-
     double t11, t12, t13, t14, t15, t16, t21, t22, t23, t24, t25, t26;
 
     Transfo();
@@ -15,10 +14,10 @@ public:
     ~Transfo();
     void display() const;
 
+    Point2D operator() (const Point2D point) const;
+    void operator()(const Point2D &point,Point2D &result) const ;
+    void operator()(const PointSet &ps,PointSet &result) const;
 
-
-
-    Point2D operator() (Point2D point) const;
 
 
 

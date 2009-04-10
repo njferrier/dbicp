@@ -44,3 +44,16 @@ void PointSet::fill_with_set1(int nb_points){
             this->push_back(Point2D(100+30*cos(i),20+30*i));
     }
 }
+
+double PointSet::get_dist_with(const PointSet &other) const {
+    double dist=0;
+    if (this->size()==other.size()) {
+        for (unsigned int i=0;i<this->size();i++)
+            dist += (*this)[i].get_dist_with(other[i]);
+    }
+    else {
+        cout << "ERROR in PointSet: point sets must have the same sizes!" <<endl;
+        exit(2);
+    }
+    return dist;
+}
