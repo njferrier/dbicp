@@ -9,20 +9,31 @@
 #define NB_CHANNELS 3
 
 // Constants for gradient descent
-#define RHO_0 1
+#define RHO_0 2
 #define RHO_1 1e-5
 #define EPSILON_0 1
 #define EPSILON_1 1e-3
-#define GD_NITER_MAX 200
+#define GD_NITER_MAX 500
 
 // Constant for Beaton Tukey
 #define BT_A 10000000
 
 // Constant for DBICP
-#define DBICP_NITER_MAX 100
+#define DBICP_NITER_MAX 500
 
 using namespace cimg_library;
 using namespace std;
+
+#include <sstream>
+template <class T>
+inline std::string to_string (const T& t)
+{
+        std::stringstream ss;
+        ss << t;
+        return ss.str();
+}
+
+
 
 DBICP::DBICP(PointSet ps1, PointSet ps2) {
     this->ps1=ps1;
@@ -57,11 +68,26 @@ void DBICP::perform() {
     ps1_img.draw_points(Blackboard,COLOR_orange);
 
     compute_n_draw_corres(COLOR_blue);
+
+    string filename="Output/Basic ICP - Best Similarity - ";
+    filename+=to_string(DBICP_NITER_MAX);
+    filename+=" DBCIP iter - ";
+    filename+=to_string(GD_NITER_MAX);
+    filename+=" GD iter - RHO_0 ";
+    filename+=to_string(RHO_0);
+    filename+=" - RHO_1 ";
+    filename+=to_string(RHO_1);
+    filename+=" - EPSILON_0 ";
+    filename+=to_string(EPSILON_0);
+    filename+=" - EPSILON_1 ";
+    filename+=to_string(EPSILON_1);
+    filename+=".bmp";
+
+
+    Blackboard.save(filename.c_str());
+
+
     Blackboard.display("Nice correspondances, right?");
-
-
-
-
 
 }
 
