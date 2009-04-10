@@ -9,15 +9,17 @@
 #define NB_CHANNELS 3
 
 // Constants for gradient descent
-#define RHO 1e-6
-#define EPSILON 1e-3
-#define GD_NITER_MAX 1000
+#define RHO_0 1
+#define RHO_1 1e-5
+#define EPSILON_0 1
+#define EPSILON_1 1e-3
+#define GD_NITER_MAX 200
 
 // Constant for Beaton Tukey
 #define BT_A 10000000
 
 // Constant for DBICP
-#define DBICP_NITER_MAX 50
+#define DBICP_NITER_MAX 100
 
 using namespace cimg_library;
 using namespace std;
@@ -47,12 +49,17 @@ void DBICP::perform() {
         transfo=S;
     }
 
+    cout << endl<< "Estimated similarity:" << endl;
+    transfo.display();
+
     ps1.draw_points(Blackboard,COLOR_green);
     ps2.draw_points(Blackboard,COLOR_red);
     ps1_img.draw_points(Blackboard,COLOR_orange);
 
     compute_n_draw_corres(COLOR_blue);
     Blackboard.display("Nice correspondances, right?");
+
+
 
 
 
@@ -79,10 +86,9 @@ void DBICP::compute_corres() {
 }
 
 void DBICP::draw_corres(const unsigned char color[]) {
-
     for (unsigned int i=0; i<ps1.size();i++){
-        Blackboard.draw_arrow(ps1[i].x,ps1[i].y,ps1_img[i].x,ps1_img[i].y,color);
-        Blackboard.draw_arrow(ps1_img[i].x,ps1_img[i].y,ps2_NN2img[i].x,ps2_NN2img[i].y,color);
+        Blackboard.draw_arrow(ps1[i].x,ps1[i].y,ps1_img[i].x,ps1_img[i].y,color,30,10);
+        Blackboard.draw_arrow(ps1_img[i].x,ps1_img[i].y,ps2_NN2img[i].x,ps2_NN2img[i].y,color,30,10);
     }
 }
 
@@ -104,10 +110,11 @@ Similarity DBICP::get_optimal_similarity_using_gd() {
     Similarity S;
 
     for (unsigned int i=0;i<GD_NITER_MAX;i++){
-        S.t11 -= RHO*(cost(Similarity(S.t11+EPSILON,S.t12,S.t13,S.t21))-cost(S))/EPSILON;
-        S.t12 -= RHO*(cost(Similarity(S.t11,S.t12+EPSILON,S.t13,S.t21))-cost(S))/EPSILON;
-        S.t13 -= RHO*(cost(Similarity(S.t11,S.t12,S.t13+EPSILON,S.t21))-cost(S))/EPSILON;
-        S.t21 -= RHO*(cost(Similarity(S.t11,S.t12,S.t13,S.t21+EPSILON))-cost(S))/EPSILON;
+        S.t11 -= RHO_0*(cost(Similarity(S.t11+EPSILON_0,S.t12,S.t13,S.t21))-cost(S))/EPSILON_0;
+        S.t12 -= RHO_1*(cost(Similarity(S.t11,S.t12+EPSILON_1,S.t13,S.t21))-cost(S))/EPSILON_1;
+        S.t13 -= RHO_1*(cost(Similarity(S.t11,S.t12,S.t13+EPSILON_1,S.t21))-cost(S))/EPSILON_1;
+        S.t21 -= RHO_0*(cost(Similarity(S.t11,S.t12,S.t13,S.t21+EPSILON_0))-cost(S))/EPSILON_0;
+        S=Similarity(S.t11,S.t12,S.t13,S.t21);
     }
 
     return S;
