@@ -23,10 +23,10 @@ void Point2D::display_in_console() const {
 
 }
 
-double Point2D::get_dist_with(Point2D &other){
+double Point2D::get_dist_with(const Point2D &other) const {
     return sqrt(pow(x-other.x,2)+pow(y-other.y,2));
 }
 
-double Point2D::get_sd_with(Point2D &other){
+double Point2D::get_sd_with(const Point2D &other) const {
     return pow(x-other.x,2)+pow(y-other.y,2);
 }

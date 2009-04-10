@@ -14,6 +14,7 @@ public:
     void display_in_console() const;
     void draw_points(CImg<unsigned char> &img,const unsigned char color[]) const;
     void display(CImg<unsigned char> &img,const unsigned char color[]) const;
+    double get_dist_with(const PointSet &other) const;
 
 
 

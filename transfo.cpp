@@ -4,14 +4,14 @@ using namespace std;
 
 Transfo::Transfo(){
     this->t11=0;
-    this->t12=0;
+    this->t12=1;
     this->t13=0;
     this->t14=0;
     this->t15=0;
     this->t16=0;
     this->t21=0;
     this->t22=0;
-    this->t23=0;
+    this->t23=1;
     this->t24=0;
     this->t25=0;
     this->t26=0;
@@ -58,7 +58,21 @@ void Transfo::display() const {
 
 }
 
-Point2D Transfo::operator()(Point2D point) const {
+Point2D Transfo::operator()(const Point2D point) const {
     return Point2D(t11 + point.x*t12 + point.y*t13 + point.x*point.x*t14 + point.x*point.y*t15 + point.y*point.y*t16,
                    t21 + point.x*t22 + point.y*t23 + point.x*point.x*t24 + point.x*point.y*t25 + point.y*point.y*t26);
 }
+
+void Transfo::operator()(const Point2D &point,Point2D &result) const {
+    result.x = t11 + point.x*t12 + point.y*t13 + point.x*point.x*t14 + point.x*point.y*t15 + point.y*point.y*t16;
+    result.y = t21 + point.x*t22 + point.y*t23 + point.x*point.x*t24 + point.x*point.y*t25 + point.y*point.y*t26;
+}
+
+
+void Transfo::operator()(const PointSet &ps,PointSet &result) const {
+    result.resize(ps.size());
+    for (unsigned int i=0;i<ps.size();i++){
+        this->operator()(ps[i],result[i]);
+    }
+}
+
