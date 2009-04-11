@@ -9,7 +9,6 @@ class Point2D {
 
         Point2D();
         Point2D(double x, double y);
-        ~Point2D();
         double get_dist_with(const Point2D &other) const;
         double get_sd_with(const Point2D &other) const;
         void display_in_console() const;

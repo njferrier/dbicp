@@ -49,13 +49,9 @@ Transfo::Transfo(double t11,double t12, double t13, double t21,double t22, doubl
 }
 
 
-Transfo::~Transfo(){
-}
-
 
 void Transfo::display() const {
     cout << t11 << "\t" << t12 << "\t" << t13 << "\t" << t14 << "\t" << t15 << "\t" << t16 << endl << t21 << "\t" << t22 << "\t" << t23 << "\t" << t24 << "\t" << t25 << "\t" << t26 << endl << endl;
-
 }
 
 Point2D Transfo::operator()(const Point2D point) const {

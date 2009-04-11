@@ -4,7 +4,6 @@
 using namespace std;
 
 Point2D::Point2D(){
-
     this->x = 0;
     this->y = 0;
 }
@@ -12,15 +11,10 @@ Point2D::Point2D(){
 Point2D::Point2D(double x, double y){
     this->x = x;
     this->y = y;
-
-}
-
-Point2D::~Point2D(){
 }
 
 void Point2D::display_in_console() const {
     cout << x << endl << y << endl;
-
 }
 
 double Point2D::get_dist_with(const Point2D &other) const {
