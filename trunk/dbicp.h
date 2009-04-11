@@ -6,6 +6,7 @@
 #include <vector>
 #include "transfo.h"
 #include "similarity.h"
+#include "bounding_box.h"
 
 
 using namespace cimg_library;
@@ -18,6 +19,7 @@ public:
 
 private:
     CImg<unsigned char> Blackboard;
+    BoundingBox box;
 
     PointSet ps1,ps2,ps1_img,ps2_NN2img;
     // ps1_img: ps1 tranformed

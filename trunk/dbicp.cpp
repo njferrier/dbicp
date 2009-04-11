@@ -52,6 +52,8 @@ DBICP::DBICP(PointSet ps1, PointSet ps2) {
 
     Blackboard.assign(WIDTH,HEIGHT,DEPTH,NB_CHANNELS);
 
+    box.assign(100,100,300,300);//Bounding box test
+
 }
 
 
@@ -207,13 +209,17 @@ void DBICP::draw_corres(const unsigned char color[]) {
 }
 
 void DBICP::display_and_save() {
-    unsigned char COLOR_orange[]={ 255,128,64 }, COLOR_blue[]={ 0,0,255 }, COLOR_green[]={ 0,255,0 }, COLOR_red[]={ 255,0,0 };
+    unsigned char COLOR_orange[]={ 255,128,64 }, COLOR_blue[]={ 0,0,255 }, COLOR_green[]={ 0,255,0 }, COLOR_red[]={ 255,0,0 },COLOR_purple[]={140,7,131};
 
     ps1.draw_points(Blackboard,COLOR_green);
     ps2.draw_points(Blackboard,COLOR_red);
     ps1_img.draw_points(Blackboard,COLOR_orange);
 
     draw_corres(COLOR_blue);
+
+    box.draw(Blackboard,COLOR_purple);
+
+    //Blackboard.draw_text("Basic ICP - Best Similarity",700,50,COLOR_purple);
 
     if (SAVE) {
         string filename="Output/Basic ICP - Best Similarity - "+to_string(DBICP_NITER_MAX)+" DBCIP iter - "+to_string(GD_NITER_MAX)+" GD iter - RHO_0 "+to_string(RHO_0)+" - RHO_1 "+to_string(RHO_1)+" - EPSILON_0 "+to_string(EPSILON_0)+" - EPSILON_1 "+to_string(EPSILON_1)+".bmp";
