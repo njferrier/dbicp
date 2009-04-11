@@ -86,7 +86,7 @@ void PointSet::fill_with_random(int nb_points){
 void PointSet::fill_with_set1(int nb_points){
     srand ( time(NULL) );
     for (int i=0;i<nb_points;i++){
-        this->push_back(Point2D(100+30*cos(i),20+30*i));
+        this->push_back(Point2D(100+30*cos(i)*pow(1.02,i),20+22*i));
     }
 }
 

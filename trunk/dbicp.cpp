@@ -13,7 +13,7 @@
 #define RHO_1 1e-10
 #define EPSILON_0 1
 #define EPSILON_1 1e-3
-#define GD_NITER_MAX 1
+#define GD_NITER_MAX 2
 
 // Constant for Beaton Tukey
 #define BT_A 1e7
@@ -27,15 +27,6 @@
 using namespace cimg_library;
 using namespace std;
 
-#include <sstream>
-template <class T>
-inline std::string to_string (const T& t)
-{
-        std::stringstream ss;
-        ss << t;
-        return ss.str();
-}
-
 
 /*****************************************
 *            CONSTRUCTOR                 *
@@ -44,15 +35,18 @@ inline std::string to_string (const T& t)
 DBICP::DBICP(PointSet ps1, PointSet ps2) {
     this->ps1=ps1;
     this->ps2=ps2;
+
     corres.resize(ps1.size());
     ps1_img.resize(ps1.size());
     ps2_NN2img.resize(ps1.size());
+    box_mask.resize(ps1.size());
+
     error=0;
     transfo=Transfo();
 
     Blackboard.assign(WIDTH,HEIGHT,DEPTH,NB_CHANNELS);
 
-    box.assign(100,100,300,300);//Bounding box test
+    box.assign(0,0,600,600);
 
 }
 
@@ -70,10 +64,11 @@ void DBICP::perform() {
 
     Similarity S;
 
+/*
     // Initialize with mean translation instead of identity
     S.t11 = ps2.get_x_mean()-ps1.get_x_mean();
     S.t21 = ps2.get_y_mean()-ps1.get_y_mean();
-
+*/
     cout << endl<<"Initialisation:"<< endl;
     transfo=S;
     transfo.display();
@@ -172,11 +167,13 @@ Similarity DBICP::get_optimal_similarity_using_gd() {
 
 double DBICP::cost(const Transfo &T) {
     /**
-    * Cost function a given transformation.
+    * Cost function a given transformation, for the points in the Bounding Box
     */
     T(ps1,ps1_img);
 
-    return Beaton_Tukey_rho(ps1_img.get_dist_with(ps2_NN2img));
+    ps1.is_in_bounding_box(box,box_mask);
+
+    return Beaton_Tukey_rho(ps1_img.get_dist_with(ps2_NN2img,box_mask));
 }
 
 double DBICP::Beaton_Tukey_rho(const double &u) const {
@@ -198,24 +195,32 @@ double DBICP::Beaton_Tukey_rho(const double &u) const {
 ******************************************/
 
 
-void DBICP::draw_corres(const unsigned char color[]) {
+void DBICP::draw_corres(const unsigned char color1[],const unsigned char color2[]) {
     /**
     * This function draw arrows on the blackboard, from ps1 to ps1_img, and from ps1_img to ps2_NN2img.
+    * Color1 within the bounding box, Color2 without
     */
     for (unsigned int i=0; i<ps1.size();i++){
-        Blackboard.draw_arrow(ps1[i].x,ps1[i].y,ps1_img[i].x,ps1_img[i].y,color,30,10);
-        Blackboard.draw_arrow(ps1_img[i].x,ps1_img[i].y,ps2_NN2img[i].x,ps2_NN2img[i].y,color,30,10);
+        if (box_mask[i]) {
+            Blackboard.draw_arrow(ps1[i].x,ps1[i].y,ps1_img[i].x,ps1_img[i].y,color1,30,10);
+            Blackboard.draw_arrow(ps1_img[i].x,ps1_img[i].y,ps2_NN2img[i].x,ps2_NN2img[i].y,color1,30,10);
+        }
+        else {
+            Blackboard.draw_arrow(ps1[i].x,ps1[i].y,ps1_img[i].x,ps1_img[i].y,color2,25,8);
+            Blackboard.draw_arrow(ps1_img[i].x,ps1_img[i].y,ps2_NN2img[i].x,ps2_NN2img[i].y,color2,25,8);
+        }
+
     }
 }
 
 void DBICP::display_and_save() {
-    unsigned char COLOR_orange[]={ 255,128,64 }, COLOR_blue[]={ 0,0,255 }, COLOR_green[]={ 0,255,0 }, COLOR_red[]={ 255,0,0 },COLOR_purple[]={140,7,131};
+    unsigned char COLOR_orange[]={ 255,128,64 }, COLOR_blue[]={ 0,0,255 }, COLOR_green[]={ 0,255,0 }, COLOR_red[]={ 255,0,0 },COLOR_purple[]={140,7,131},COLOR_dark_blue[]={0,0,130};
 
     ps1.draw_points(Blackboard,COLOR_green);
     ps2.draw_points(Blackboard,COLOR_red);
     ps1_img.draw_points(Blackboard,COLOR_orange);
 
-    draw_corres(COLOR_blue);
+    draw_corres(COLOR_blue,COLOR_dark_blue);
 
     box.draw(Blackboard,COLOR_purple);
 
@@ -230,3 +235,6 @@ void DBICP::display_and_save() {
 
 
 }
+
+
+
