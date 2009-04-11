@@ -15,7 +15,7 @@ int main() {
          << "=====================================================" << endl << endl;
 
     PointSet ps,ps1,ps2;
-    Similarity S(50,0.7,0.6,100);
+    Similarity S(250,0.7,0.6,200);
     cout << "Similarity used to move points:" << endl;
     S.display();
 
