@@ -19,6 +19,7 @@ public:
     double get_dist_with(const PointSet &other,const vector<bool> &mask) const;
     double get_x_mean();
     double get_y_mean();
+    void is_in_bounding_box(const BoundingBox &box,vector<bool> &result) const;
 
 
 

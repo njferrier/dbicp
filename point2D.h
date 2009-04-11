@@ -2,6 +2,8 @@
 #define Point2D_H
 
 #include <iostream>
+#include "bounding_box.h"
+#include <math.h>
 
 class Point2D {
     public:
@@ -12,6 +14,7 @@ class Point2D {
         double get_dist_with(const Point2D &other) const;
         double get_sd_with(const Point2D &other) const;
         void display_in_console() const;
+        bool is_in_bounding_box(const BoundingBox &box) const;
 
 
 

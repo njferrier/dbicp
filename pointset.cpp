@@ -70,6 +70,7 @@ double PointSet::get_dist_with(const PointSet &other,const vector<bool> &mask) c
     return dist;
 }
 
+
 /*****************************************
 *           FILLING FUNCTIONS            *
 ******************************************/
@@ -77,7 +78,7 @@ double PointSet::get_dist_with(const PointSet &other,const vector<bool> &mask) c
 void PointSet::fill_with_random(int nb_points){
     srand ( time(NULL) );
     for (int i=0;i<nb_points;i++){
-            this->push_back(Point2D(rand()%1000,rand()%1000));
+        this->push_back(Point2D(rand()%1000,rand()%1000));
     }
 }
 
@@ -85,9 +86,10 @@ void PointSet::fill_with_random(int nb_points){
 void PointSet::fill_with_set1(int nb_points){
     srand ( time(NULL) );
     for (int i=0;i<nb_points;i++){
-            this->push_back(Point2D(100+30*cos(i),20+30*i));
+        this->push_back(Point2D(100+30*cos(i),20+30*i));
     }
 }
+
 
 /*****************************************
 *             STAT FUNCTIONS             *
@@ -108,4 +110,16 @@ double PointSet::get_y_mean(){
         y_mean+=(*this)[i].y;
     y_mean/=this->size();
     return y_mean;
+}
+
+
+/*****************************************
+*        BOUNDING BOX FUNCTIONS          *
+******************************************/
+
+void PointSet::is_in_bounding_box(const BoundingBox &box,vector<bool> &mask_result) const {
+    mask_result.resize(this->size());
+    for (unsigned int i=0;i<this->size();i++){
+         mask_result[i] = (*this)[i].is_in_bounding_box(box);
+    }
 }
