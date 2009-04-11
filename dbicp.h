@@ -30,7 +30,6 @@ private:
     void perform_optim_step();
     void compute_corres();
     void draw_corres(const unsigned char color[]);
-    void compute_n_draw_corres(const unsigned char color[]);
 
     double cost(const Transfo &T);
 
@@ -38,6 +37,8 @@ private:
 
     Similarity get_optimal_similarity();
     Similarity get_optimal_similarity_using_gd();
+
+    void display_and_save();
 
 
 

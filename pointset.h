@@ -6,6 +6,7 @@
 #include "CImg.h"
 
 using namespace cimg_library;
+using namespace std;
 
 class PointSet : public std::vector<Point2D> {
 public:
@@ -15,6 +16,9 @@ public:
     void draw_points(CImg<unsigned char> &img,const unsigned char color[]) const;
     void display(CImg<unsigned char> &img,const unsigned char color[]) const;
     double get_dist_with(const PointSet &other) const;
+    double get_dist_with(const PointSet &other,const vector<bool> &mask) const;
+    double get_x_mean();
+    double get_y_mean();
 
 
 
