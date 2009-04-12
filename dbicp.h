@@ -21,6 +21,7 @@ public:
 
 private:
     CImg<unsigned char> Blackboard;
+    CImgDisplay Blackboard_disp;
     BoundingBox box;
 
     PointSet ps1,ps2,ps1_img,ps2_NN2img;
@@ -45,7 +46,7 @@ private:
     Similarity get_optimal_similarity();
     Similarity get_optimal_similarity_using_gd();
 
-    void display_and_save();
+    void display(string legend="",bool temporary=false);
 
 
 
