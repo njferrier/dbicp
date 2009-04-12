@@ -8,6 +8,7 @@
 #include "similarity.h"
 #include "bounding_box.h"
 #include "tools.h"
+#include "cimg_patch.h"
 
 
 using namespace cimg_library;
@@ -34,7 +35,7 @@ private:
     double error;
     void perform_matching_step();
     void perform_optim_step();
-    void compute_corres();
+    void compute_corres(bool all_points=false);
     void draw_corres(const unsigned char color1[],const unsigned char color2[]);
 
     double cost(const Transfo &T);

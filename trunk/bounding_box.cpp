@@ -1,5 +1,7 @@
 #include "bounding_box.h"
 
+using namespace std;
+
 BoundingBox::BoundingBox(){
     this->x_min = 0;
     this->x_max = 0;
@@ -28,3 +30,6 @@ void BoundingBox::draw(CImg<unsigned char> &pic, const unsigned char color[]){
     pic.draw_line(x_min, y_max, x_max, y_max, color);
 }
 
+void BoundingBox::display(){
+    cout << "BoundingBox[x_min,y_min,x_max,y_max] : ["<<x_min<<","<<y_min<<","<<x_max<<","<<y_max<<"]"<<endl<<endl;
+}

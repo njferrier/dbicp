@@ -2,6 +2,7 @@
 #define BOUNDING_BOX_H
 
 #include "CImg.h"
+#include <iostream>
 
 using namespace cimg_library;
 
@@ -18,6 +19,8 @@ class BoundingBox {
         void assign(double x_min, double y_min, double x_max, double y_max);
 
         void draw(CImg<unsigned char> &pic, const unsigned char color[]);
+
+        void display();
 
 
 
