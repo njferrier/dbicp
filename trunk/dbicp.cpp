@@ -13,13 +13,17 @@
 #define RHO_1 1e-10
 #define EPSILON_0 1e-3
 #define EPSILON_1 1e-3
-#define GD_NITER_MAX 10
+#define GD_NITER_MAX 20
 
 // Constant for Beaton Tukey
 #define BT_A 1e7
 
 // Constant for DBICP
 #define DBICP_NITER_MAX 10
+
+// Constants for display
+#define TEMPORARY_DISPLAY_TIME 1e6
+#define DISPLAY_STEPS true
 
 // Constant for saving
 #define SAVE false
@@ -51,6 +55,7 @@ DBICP::DBICP(PointSet ps1, PointSet ps2) {
 */
 
     Blackboard.assign(WIDTH,HEIGHT,DEPTH,NB_CHANNELS);
+    Blackboard_disp.resize(Blackboard);
 
     box.assign(0,0,600,600);
     box.display();
@@ -58,10 +63,6 @@ DBICP::DBICP(PointSet ps1, PointSet ps2) {
 
     cout << "Initial transformation:"<< endl;
     transfo.display();
-
-
-
-
 }
 
 
@@ -73,21 +74,34 @@ DBICP::DBICP(PointSet ps1, PointSet ps2) {
 void DBICP::perform() {
     cout << "Performing DBICP..." << endl<< endl;
 
+    string legend;
+
     for (unsigned int i=0;i<DBICP_NITER_MAX;i++){
         perform_matching_step();
+
+        if (DISPLAY_STEPS) {
+            legend="Iteration #"+to_string(i+1)+" - Matching step";
+            display(legend,true);
+        }
+
         perform_optim_step();
+
+        if (DISPLAY_STEPS) {
+            legend="Iteration #"+to_string(i+1)+" - Optim step";
+            display(legend,true);
+        }
+
     }
 
     cout << "Estimated transformation:" << endl;
     transfo.display();
 
-    // Update everything for ALL the points (not only the one in the bounding box)
-    transfo(ps1,ps1_img);
-    compute_corres(true);
+    display(string("Final result"));
 
-    display_and_save();
-
-
+    if (SAVE) {
+        string filename="Output/Basic ICP - Best Similarity - "+to_string(DBICP_NITER_MAX)+" DBCIP iter - "+to_string(GD_NITER_MAX)+" GD iter - RHO_0 "+to_string(RHO_0)+" - RHO_1 "+to_string(RHO_1)+" - EPSILON_0 "+to_string(EPSILON_0)+" - EPSILON_1 "+to_string(EPSILON_1)+".bmp";
+        Blackboard.save(filename.c_str());
+    }
 
 }
 
@@ -160,7 +174,7 @@ Similarity DBICP::get_optimal_similarity_using_gd() {
         S.t13 -= RHO_1*(cost(Similarity(S.t11,S.t12,S.t13+EPSILON_1,S.t21))-cost(S))/EPSILON_1;
         S.t21 -= RHO_0*(cost(Similarity(S.t11,S.t12,S.t13,S.t21+EPSILON_0))-cost(S))/EPSILON_0;
 
-        S=Similarity(S.t11,S.t12,S.t13,S.t21);
+        S.assign(S.t11,S.t12,S.t13,S.t21);
     }
 
     return S;
@@ -189,7 +203,7 @@ double DBICP::Beaton_Tukey_rho(const double &u) const {
 
 
 /*****************************************
-*        DISPLAY & SAVE FUNCTIONS        *
+*           DISPLAY FUNCTIONS            *
 ******************************************/
 
 
@@ -211,25 +225,41 @@ void DBICP::draw_corres(const unsigned char color1[],const unsigned char color2[
     }
 }
 
-void DBICP::display_and_save() {
-    unsigned char COLOR_orange[]={248,90,4}, COLOR_blue[]={0,0,255}, COLOR_green[]={0,255,0}, COLOR_red[]={255,0,0}, COLOR_purple[]={140,7,131}, COLOR_dark_blue[]={0,0,130};
+void DBICP::display(string legend, bool temporary) {
+
+    // Update everything for ALL the points (not only the one in the bounding box)
+    transfo(ps1,ps1_img);
+    compute_corres(true);
+
+    Blackboard.fill(0); // Clean the blackboard!
+
+    unsigned char COLOR_orange[]={248,90,4}, COLOR_blue[]={0,0,255}, COLOR_green[]={0,255,0}, COLOR_red[]={255,0,0}, COLOR_purple[]={140,7,131}, COLOR_dark_blue[]={0,0,130}, COLOR_yellow[]={255,255,0};
 
     ps1.draw_points(Blackboard,COLOR_green);
     ps2.draw_points(Blackboard,COLOR_red);
-    ps1_img.draw_points(Blackboard,COLOR_orange);
+    ps1_img.draw_points(Blackboard,COLOR_yellow);
 
     draw_corres(COLOR_blue,COLOR_dark_blue);
 
     box.draw(Blackboard,COLOR_purple);
 
-    //Blackboard.draw_text("Basic ICP - Best Similarity",700,50,COLOR_purple);
+    Blackboard.draw_text(legend.c_str(),700,50,COLOR_orange);
 
-    if (SAVE) {
-        string filename="Output/Basic ICP - Best Similarity - "+to_string(DBICP_NITER_MAX)+" DBCIP iter - "+to_string(GD_NITER_MAX)+" GD iter - RHO_0 "+to_string(RHO_0)+" - RHO_1 "+to_string(RHO_1)+" - EPSILON_0 "+to_string(EPSILON_0)+" - EPSILON_1 "+to_string(EPSILON_1)+".bmp";
-        Blackboard.save(filename.c_str());
+    Blackboard_disp.display(Blackboard);
+    Blackboard_disp.show();
+
+    if (!temporary) {
+        while (!Blackboard_disp.is_closed){
+            usleep(1e3);
+        }
+    }
+    else {
+        usleep(TEMPORARY_DISPLAY_TIME);
     }
 
-    Blackboard.display("Good job, right?");
+
+
+
 
 }
 
