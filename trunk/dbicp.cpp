@@ -9,17 +9,17 @@
 #define NB_CHANNELS 3
 
 // Constants for gradient descent
-#define RHO_0 2e-10
+#define RHO_0 1e-10
 #define RHO_1 1e-10
 #define EPSILON_0 1e-3
 #define EPSILON_1 1e-3
-#define GD_NITER_MAX 10
+#define GD_NITER_MAX 5
 
 // Constant for Beaton Tukey
 #define BT_A 1e7
 
 // Constant for DBICP
-#define DBICP_NITER_MAX 40
+#define DBICP_NITER_MAX 100
 
 // Constant for display
 #define TEMPORARY_DISPLAY_TIME 0
@@ -60,9 +60,12 @@ DBICP::DBICP(PointSet ps1, PointSet ps2) {
         transfo.t21 = ps2.get_y_mean()-ps1.get_y_mean();
     }
 
+    transfo.t11 = 250;
+    transfo.t21 = 200;
+
     Blackboard.assign(WIDTH,HEIGHT,DEPTH,NB_CHANNELS);
 
-    box.assign(0,0,1000,1000);
+    box.assign(0,0,1000,900);
     box.display();
     ps1.is_in_bounding_box(box,box_mask);
 
@@ -94,10 +97,10 @@ void DBICP::perform() {
             }
             if (SAVE_VID){
                 steps.insert(Blackboard);
-                if (i<10) {
+              /*  if (i<10) {
                     for (unsigned int fps_patch=0;fps_patch<3;fps_patch++) // Because the fps parameter does not work on my PC...
                         steps.insert(Blackboard);
-                }
+                }*/
             }
         }
 
@@ -112,10 +115,10 @@ void DBICP::perform() {
             }
             if (SAVE_VID){
                 steps.insert(Blackboard);
-                if (i<10){
+               /* if (i<10){
                     for (unsigned int fps_patch=0;fps_patch<3;fps_patch++) // Because the fps parameter does not work on my PC...
                         steps.insert(Blackboard);
-                }
+                }*/
             }
         }
 
