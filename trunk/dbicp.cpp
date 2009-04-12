@@ -19,7 +19,7 @@
 #define BT_A 1e7
 
 // Constant for DBICP
-#define DBICP_NITER_MAX 100
+#define DBICP_NITER_MAX 120
 
 // Constant for display
 #define TEMPORARY_DISPLAY_TIME 0
@@ -60,8 +60,8 @@ DBICP::DBICP(PointSet ps1, PointSet ps2) {
         transfo.t21 = ps2.get_y_mean()-ps1.get_y_mean();
     }
 
-    transfo.t11 = 250;
-    transfo.t21 = 200;
+    //transfo.t11 = 250;
+    //transfo.t21 = 200;
 
     Blackboard.assign(WIDTH,HEIGHT,DEPTH,NB_CHANNELS);
 
@@ -97,10 +97,10 @@ void DBICP::perform() {
             }
             if (SAVE_VID){
                 steps.insert(Blackboard);
-              /*  if (i<10) {
-                    for (unsigned int fps_patch=0;fps_patch<3;fps_patch++) // Because the fps parameter does not work on my PC...
+                if (i<5) {
+                    for (unsigned int fps_patch=0;fps_patch<2;fps_patch++) // Because the fps parameter does not work on my PC...
                         steps.insert(Blackboard);
-                }*/
+                }
             }
         }
 
@@ -115,10 +115,10 @@ void DBICP::perform() {
             }
             if (SAVE_VID){
                 steps.insert(Blackboard);
-               /* if (i<10){
-                    for (unsigned int fps_patch=0;fps_patch<3;fps_patch++) // Because the fps parameter does not work on my PC...
+                if (i<5){
+                    for (unsigned int fps_patch=0;fps_patch<2;fps_patch++) // Because the fps parameter does not work on my PC...
                         steps.insert(Blackboard);
-                }*/
+                }
             }
         }
 
