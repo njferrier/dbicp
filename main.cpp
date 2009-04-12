@@ -4,6 +4,7 @@
 #include "similarity.h"
 #include "pointset.h"
 #include "dbicp.h"
+#include "CImg.h"
 
 
 using namespace std;

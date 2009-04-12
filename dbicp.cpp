@@ -9,24 +9,30 @@
 #define NB_CHANNELS 3
 
 // Constants for gradient descent
-#define RHO_0 1e-10
+#define RHO_0 2e-10
 #define RHO_1 1e-10
 #define EPSILON_0 1e-3
 #define EPSILON_1 1e-3
-#define GD_NITER_MAX 20
+#define GD_NITER_MAX 10
 
 // Constant for Beaton Tukey
 #define BT_A 1e7
 
 // Constant for DBICP
-#define DBICP_NITER_MAX 10
+#define DBICP_NITER_MAX 40
 
-// Constants for display
-#define TEMPORARY_DISPLAY_TIME 1e6
-#define DISPLAY_STEPS true
+// Constant for display
+#define TEMPORARY_DISPLAY_TIME 0
 
 // Constant for saving
 #define SAVE false
+
+// Constants for Step By Step
+#define STEP_BY_STEP true
+#define SAVE_STEPS false
+#define SAVE_VID true
+
+#define INIT_WITH_MAIN_TRANSL false
 
 using namespace cimg_library;
 using namespace std;
@@ -48,16 +54,15 @@ DBICP::DBICP(PointSet ps1, PointSet ps2) {
     error=0;
     transfo=Transfo();
 
-/*
-    // Initialize with mean translation instead of identity
-    transfo.t11 = ps2.get_x_mean()-ps1.get_x_mean();
-    transfo.t21 = ps2.get_y_mean()-ps1.get_y_mean();
-*/
+    if (INIT_WITH_MAIN_TRANSL) {
+        // Initialize with mean translation instead of identity
+        transfo.t11 = ps2.get_x_mean()-ps1.get_x_mean();
+        transfo.t21 = ps2.get_y_mean()-ps1.get_y_mean();
+    }
 
     Blackboard.assign(WIDTH,HEIGHT,DEPTH,NB_CHANNELS);
-    Blackboard_disp.resize(Blackboard);
 
-    box.assign(0,0,600,600);
+    box.assign(0,0,1000,1000);
     box.display();
     ps1.is_in_bounding_box(box,box_mask);
 
@@ -74,27 +79,59 @@ DBICP::DBICP(PointSet ps1, PointSet ps2) {
 void DBICP::perform() {
     cout << "Performing DBICP..." << endl<< endl;
 
-    string legend;
+    string legend,filename;
+    CImgList<unsigned char> steps;
 
     for (unsigned int i=0;i<DBICP_NITER_MAX;i++){
         perform_matching_step();
 
-        if (DISPLAY_STEPS) {
+        if (STEP_BY_STEP) {
             legend="Iteration #"+to_string(i+1)+" - Matching step";
             display(legend,true);
+            if (SAVE_STEPS) {
+                filename="Output/Step by Step/Basic ICP - Iteration #"+to_string(i+1)+" - Matching step.bmp";
+                Blackboard.save(filename.c_str());
+            }
+            if (SAVE_VID){
+                steps.insert(Blackboard);
+                if (i<10) {
+                    for (unsigned int fps_patch=0;fps_patch<3;fps_patch++) // Because the fps parameter does not work on my PC...
+                        steps.insert(Blackboard);
+                }
+            }
         }
 
         perform_optim_step();
 
-        if (DISPLAY_STEPS) {
+        if (STEP_BY_STEP) {
             legend="Iteration #"+to_string(i+1)+" - Optim step";
             display(legend,true);
+            if (SAVE_STEPS) {
+                filename="Output/Step by Step/Basic ICP - Iteration #"+to_string(i+1)+" - Optim step.bmp";
+                Blackboard.save(filename.c_str());
+            }
+            if (SAVE_VID){
+                steps.insert(Blackboard);
+                if (i<10){
+                    for (unsigned int fps_patch=0;fps_patch<3;fps_patch++) // Because the fps parameter does not work on my PC...
+                        steps.insert(Blackboard);
+                }
+            }
         }
 
     }
 
     cout << "Estimated transformation:" << endl;
     transfo.display();
+
+    if (STEP_BY_STEP && SAVE_VID) {
+        cout << "Saving video... ";
+        const unsigned int fps=1;
+        filename = "Output/Basic ICP - "+to_string(GD_NITER_MAX)+" GD iter - "+to_string(DBICP_NITER_MAX)+" DBCIP iter.mpg";
+        steps.save_ffmpeg(filename.c_str(),0,steps.size-1,fps);
+        cout << "Done." << endl << endl;
+    }
+
 
     display(string("Final result"));
 
@@ -215,12 +252,12 @@ void DBICP::draw_corres(const unsigned char color1[],const unsigned char color2[
 
     for (unsigned int i=0; i<ps1.size();i++){
         if (box_mask[i]) {
-            Blackboard.draw_arrow(arrow_p(ps1[i].x),arrow_p(ps1[i].y),arrow_p(ps1_img[i].x),arrow_p(ps1_img[i].y),color1,30,10);
-            Blackboard.draw_arrow(arrow_p(ps1_img[i].x),arrow_p(ps1_img[i].y),arrow_p(ps2_NN2img[i].x),arrow_p(ps2_NN2img[i].y),color1,30,10);
+            Blackboard.draw_arrow(arrow_p(ps1[i].x),arrow_p(ps1[i].y),arrow_p(ps1_img[i].x),arrow_p(ps1_img[i].y),color1,.5,30,8);
+            Blackboard.draw_arrow(arrow_p(ps1_img[i].x),arrow_p(ps1_img[i].y),arrow_p(ps2_NN2img[i].x),arrow_p(ps2_NN2img[i].y),color1,.5,30,8);
         }
         else {
-            Blackboard.draw_arrow(arrow_p(ps1[i].x),arrow_p(ps1[i].y),arrow_p(ps1_img[i].x),arrow_p(ps1_img[i].y),color2,25,8);
-            Blackboard.draw_arrow(arrow_p(ps1_img[i].x),arrow_p(ps1_img[i].y),arrow_p(ps2_NN2img[i].x),arrow_p(ps2_NN2img[i].y),color2,25,8);
+            Blackboard.draw_arrow(arrow_p(ps1[i].x),arrow_p(ps1[i].y),arrow_p(ps1_img[i].x),arrow_p(ps1_img[i].y),color2,.5,8,5);
+            Blackboard.draw_arrow(arrow_p(ps1_img[i].x),arrow_p(ps1_img[i].y),arrow_p(ps2_NN2img[i].x),arrow_p(ps2_NN2img[i].y),color2,.5,8,5);
         }
     }
 }
@@ -243,9 +280,9 @@ void DBICP::display(string legend, bool temporary) {
 
     box.draw(Blackboard,COLOR_purple);
 
-    Blackboard.draw_text(legend.c_str(),700,50,COLOR_orange);
+    Blackboard.draw_text(700,50,legend.c_str(),COLOR_orange);
 
-    Blackboard_disp.display(Blackboard);
+    Blackboard_disp << Blackboard;
     Blackboard_disp.show();
 
     if (!temporary) {
