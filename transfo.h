@@ -3,6 +3,9 @@
 
 #include "point2D.h"
 #include "pointset.h"
+#include <vector>
+
+using namespace std;
 
 class Transfo {
 public:
@@ -17,6 +20,7 @@ public:
     Point2D operator() (const Point2D point) const;
     void operator()(const Point2D &point,Point2D &result) const ;
     void operator()(const PointSet &ps,PointSet &result) const;
+    void operator()(const PointSet &ps,PointSet &result, const vector<bool> &mask) const;
 
 
 

@@ -72,3 +72,10 @@ void Transfo::operator()(const PointSet &ps,PointSet &result) const {
     }
 }
 
+void Transfo::operator()(const PointSet &ps,PointSet &result, const vector<bool> &mask) const {
+    result.resize(ps.size());
+    for (unsigned int i=0;i<ps.size();i++){
+        if (mask[i])
+            this->operator()(ps[i],result[i]);
+    }
+}
