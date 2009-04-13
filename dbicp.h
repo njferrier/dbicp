@@ -9,6 +9,7 @@
 #include "bounding_box.h"
 #include "tools.h"
 #include "cimg_patch.h"
+#include "graph.h"
 
 
 using namespace cimg_library;
@@ -23,6 +24,7 @@ private:
     CImg<unsigned char> Blackboard;
     CImgDisplay Blackboard_disp;
     BoundingBox box;
+    Graph cost_graph;
 
     PointSet ps1,ps2,ps1_img,ps2_NN2img;
     // ps1_img: ps1 tranformed
@@ -33,9 +35,12 @@ private:
 
     Transfo transfo;
 
-    double error;
+    vector<double> costs;
+
     void perform_matching_step();
     void perform_optim_step();
+    void step_stuff(CImgList<unsigned char> &steps,string step_name,int iter_nb);
+
     void compute_corres(bool all_points=false);
     void draw_corres(const unsigned char color1[],const unsigned char color2[]);
 

@@ -25,14 +25,14 @@
 #define TEMPORARY_DISPLAY_TIME 0
 
 // Constant for saving
-#define SAVE false
+#define SAVE true
 
 // Constants for Step By Step
 #define STEP_BY_STEP true
 #define SAVE_STEPS false
 #define SAVE_VID true
 
-#define INIT_WITH_MAIN_TRANSL false
+#define INIT_WITH_BARY_TRANSL false
 
 using namespace cimg_library;
 using namespace std;
@@ -51,17 +51,19 @@ DBICP::DBICP(PointSet ps1, PointSet ps2) {
     ps2_NN2img.resize(ps1.size());
     box_mask.resize(ps1.size());
 
-    error=0;
+    costs.resize(DBICP_NITER_MAX);
+    cost_graph.assign(1000,1000);
+
     transfo=Transfo();
 
-    if (INIT_WITH_MAIN_TRANSL) {
+    if (INIT_WITH_BARY_TRANSL) {
         // Initialize with mean translation instead of identity
         transfo.t11 = ps2.get_x_mean()-ps1.get_x_mean();
         transfo.t21 = ps2.get_y_mean()-ps1.get_y_mean();
     }
 
-    //transfo.t11 = 250;
-    //transfo.t21 = 200;
+    transfo.t11 = 250;
+    transfo.t21 = 200;
 
     Blackboard.assign(WIDTH,HEIGHT,DEPTH,NB_CHANNELS);
 
@@ -82,45 +84,12 @@ DBICP::DBICP(PointSet ps1, PointSet ps2) {
 void DBICP::perform() {
     cout << "Performing DBICP..." << endl<< endl;
 
-    string legend,filename;
     CImgList<unsigned char> steps;
 
     for (unsigned int i=0;i<DBICP_NITER_MAX;i++){
-        perform_matching_step();
-
-        if (STEP_BY_STEP) {
-            legend="Iteration #"+to_string(i+1)+" - Matching step";
-            display(legend,true);
-            if (SAVE_STEPS) {
-                filename="Output/Step by Step/Basic ICP - Iteration #"+to_string(i+1)+" - Matching step.bmp";
-                Blackboard.save(filename.c_str());
-            }
-            if (SAVE_VID){
-                steps.insert(Blackboard);
-                if (i<5) {
-                    for (unsigned int fps_patch=0;fps_patch<2;fps_patch++) // Because the fps parameter does not work on my PC...
-                        steps.insert(Blackboard);
-                }
-            }
-        }
-
-        perform_optim_step();
-
-        if (STEP_BY_STEP) {
-            legend="Iteration #"+to_string(i+1)+" - Optim step";
-            display(legend,true);
-            if (SAVE_STEPS) {
-                filename="Output/Step by Step/Basic ICP - Iteration #"+to_string(i+1)+" - Optim step.bmp";
-                Blackboard.save(filename.c_str());
-            }
-            if (SAVE_VID){
-                steps.insert(Blackboard);
-                if (i<5){
-                    for (unsigned int fps_patch=0;fps_patch<2;fps_patch++) // Because the fps parameter does not work on my PC...
-                        steps.insert(Blackboard);
-                }
-            }
-        }
+        perform_matching_step(); step_stuff(steps,"Matching",i);
+        perform_optim_step(); step_stuff(steps,"Optim",i);
+        costs[i]=cost(transfo);
 
     }
 
@@ -130,7 +99,7 @@ void DBICP::perform() {
     if (STEP_BY_STEP && SAVE_VID) {
         cout << "Saving video... ";
         const unsigned int fps=1;
-        filename = "Output/Basic ICP - "+to_string(GD_NITER_MAX)+" GD iter - "+to_string(DBICP_NITER_MAX)+" DBCIP iter.mpg";
+        string filename = "Output/Basic ICP - "+to_string(GD_NITER_MAX)+" GD iter - "+to_string(DBICP_NITER_MAX)+" DBCIP iter.mpg";
         steps.save_ffmpeg(filename.c_str(),0,steps.size-1,fps);
         cout << "Done." << endl << endl;
     }
@@ -138,14 +107,40 @@ void DBICP::perform() {
 
     display(string("Final result"));
 
+    unsigned char COLOR_red[]={255,0,0};
+    cost_graph.draw(costs,COLOR_red,"Error cost");
+    cost_graph.display("Error Cost");
+
     if (SAVE) {
-        string filename="Output/Basic ICP - Best Similarity - "+to_string(DBICP_NITER_MAX)+" DBCIP iter - "+to_string(GD_NITER_MAX)+" GD iter - RHO_0 "+to_string(RHO_0)+" - RHO_1 "+to_string(RHO_1)+" - EPSILON_0 "+to_string(EPSILON_0)+" - EPSILON_1 "+to_string(EPSILON_1)+".bmp";
+        string filename="Output/Basic ICP - "+to_string(GD_NITER_MAX)+" GD iter - "+to_string(DBICP_NITER_MAX)+" DBCIP iter.jpg";
         Blackboard.save(filename.c_str());
+        filename="Output/Cost Graph - Basic ICP - "+to_string(GD_NITER_MAX)+" GD iter - "+to_string(DBICP_NITER_MAX)+" DBCIP iter.jpg";
+        cost_graph.save(filename.c_str());
     }
 
 }
 
 
+/*****************************************
+*       FUNCTIONS FOR STEP BY STEP       *
+******************************************/
+void DBICP::step_stuff(CImgList<unsigned char> &steps,string step_name,int iter_nb) {
+    if (STEP_BY_STEP) {
+        string legend="Iteration #"+to_string(iter_nb+1)+" - "+step_name+" step";
+        display(legend,true);
+        if (SAVE_STEPS) {
+            string filename="Output/Step by Step/Basic ICP - Iteration #"+to_string(iter_nb+1)+" - "+step_name+" step.jpg";
+            Blackboard.save(filename.c_str());
+        }
+        if (SAVE_VID){
+            steps.insert(Blackboard);
+            if (iter_nb<5) {
+                for (unsigned int fps_patch=0;fps_patch<2;fps_patch++) // Extra pictures at the beginning
+                    steps.insert(Blackboard);
+            }
+        }
+    }
+}
 
 /*****************************************
 *           MATCHING FUNCTIONS           *
@@ -161,10 +156,7 @@ void DBICP::perform_matching_step(){
 void DBICP::compute_corres(bool all_points) {
     /**
     * Compute correspondances (update corres and ps2_NN2img) for the point in the Bounding Box (except if all_points is true).
-    * The L2 error is also stored.
     */
-
-    error=0;
 
     for (unsigned int i=0;i<ps1.size();i++) {
         if (box_mask[i] or all_points) {
@@ -177,7 +169,6 @@ void DBICP::compute_corres(bool all_points) {
                     ps2_NN2img[i]=ps2[j];
                 }
             }
-            error+=error_i_min;
         }
     }
 
@@ -273,7 +264,7 @@ void DBICP::display(string legend, bool temporary) {
 
     Blackboard.fill(0); // Clean the blackboard!
 
-    unsigned char COLOR_orange[]={248,90,4}, COLOR_blue[]={0,0,255}, COLOR_green[]={0,255,0}, COLOR_red[]={255,0,0}, COLOR_purple[]={140,7,131}, COLOR_dark_blue[]={0,0,130}, COLOR_yellow[]={255,255,0};
+    unsigned char COLOR_orange[]={248,90,4}, COLOR_blue[]={0,0,255}, COLOR_green[]={0,255,0}, COLOR_red[]={255,0,0}, COLOR_purple[]={140,7,131}, COLOR_dark_blue[]={0,0,130}, COLOR_yellow[]={255,255,0},COLOR_black[]={0,0,0};
 
     ps1.draw_points(Blackboard,COLOR_green);
     ps2.draw_points(Blackboard,COLOR_red);
@@ -283,7 +274,9 @@ void DBICP::display(string legend, bool temporary) {
 
     box.draw(Blackboard,COLOR_purple);
 
-    Blackboard.draw_text(700,50,legend.c_str(),COLOR_orange);
+    const int font_size = 35;
+
+    Blackboard.draw_text(400,30,legend.c_str(),COLOR_orange,COLOR_black,1,font_size);
 
     Blackboard_disp << Blackboard;
     Blackboard_disp.show();
