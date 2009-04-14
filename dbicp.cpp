@@ -9,20 +9,20 @@
 #define NB_CHANNELS 3
 
 // Constants for gradient descent
-#define RHO_0 1e-10
-#define RHO_1 1e-10
+#define RHO_0 1e-8
+#define RHO_1 1e-8
 #define EPSILON_0 1e-3
 #define EPSILON_1 1e-3
-#define GD_NITER_MAX 5
+#define GD_NITER_MAX 100
 
 // Constant for Beaton Tukey
 #define BT_A 1e7
 
 // Constant for DBICP
-#define DBICP_NITER_MAX 120
+#define DBICP_NITER_MAX 200
 
 // Constant for display
-#define TEMPORARY_DISPLAY_TIME 0
+#define TEMPORARY_DISPLAY_TIME 10
 
 // Constant for saving
 #define SAVE true
@@ -30,9 +30,16 @@
 // Constants for Step By Step
 #define STEP_BY_STEP true
 #define SAVE_STEPS false
-#define SAVE_VID true
+#define SAVE_VID false
 
+// Constant for Initial transfo
 #define INIT_WITH_BARY_TRANSL false
+
+// Constants for Region Bootstrapping
+#define REGION_GROWTH 30
+#define RB_THRESHOLD 1e2
+#define INIT_BR_AROUND_BEST_MATCH true
+#define BR_INIT_SIZE 30
 
 using namespace cimg_library;
 using namespace std;
@@ -62,13 +69,27 @@ DBICP::DBICP(PointSet ps1, PointSet ps2) {
         transfo.t21 = ps2.get_y_mean()-ps1.get_y_mean();
     }
 
-    transfo.t11 = 250;
-    transfo.t21 = 200;
+    //transfo.t11 = 250;
+    //transfo.t21 = 200;
+
+    transfo(ps1,ps1_img);
 
     Blackboard.assign(WIDTH,HEIGHT,DEPTH,NB_CHANNELS);
 
-    box.assign(0,0,1000,900);
+    if (INIT_BR_AROUND_BEST_MATCH) {
+        double dummy;
+        int min_ind;
+        ps1_img.min_wrt_dist(ps2, dummy, min_ind);
+        double x_init=ps1[min_ind].x,y_init=ps1[min_ind].y;
+
+        box.assign(max(0.0,x_init-BR_INIT_SIZE/2),max(0.0,y_init-BR_INIT_SIZE/2),min(double(WIDTH),x_init+BR_INIT_SIZE/2),min(double(HEIGHT),y_init+BR_INIT_SIZE/2));
+    } else {
+        box.assign(0,0,1000,900);
+    }
+
+    cout << "Initial Bootstrap Region:" << endl;
     box.display();
+
     ps1.is_in_bounding_box(box,box_mask);
 
     cout << "Initial transformation:"<< endl;
@@ -89,6 +110,7 @@ void DBICP::perform() {
     for (unsigned int i=0;i<DBICP_NITER_MAX;i++){
         perform_matching_step(); step_stuff(steps,"Matching",i);
         perform_optim_step(); step_stuff(steps,"Optim",i);
+        bootstrap_region(i);
         costs[i]=cost(transfo);
 
     }
@@ -111,11 +133,25 @@ void DBICP::perform() {
     cost_graph.draw(costs,COLOR_red,"Error cost");
     cost_graph.display("Error Cost");
 
+    Graph approx_err_der(1000,1000);
+
+    vector<double> approx_err_der_values;
+    approx_err_der_values.resize(costs.size());
+    for (unsigned int i=0; i<costs.size()-1;i++)
+        approx_err_der_values[i] = costs[i+1]-costs[i];
+
+    approx_err_der.draw(approx_err_der_values,COLOR_red,"dE/dt");
+    approx_err_der.display("dE/dt");
+
     if (SAVE) {
         string filename="Output/Basic ICP - "+to_string(GD_NITER_MAX)+" GD iter - "+to_string(DBICP_NITER_MAX)+" DBCIP iter.jpg";
         Blackboard.save(filename.c_str());
         filename="Output/Cost Graph - Basic ICP - "+to_string(GD_NITER_MAX)+" GD iter - "+to_string(DBICP_NITER_MAX)+" DBCIP iter.jpg";
         cost_graph.save(filename.c_str());
+        //filename="Output/Approx Cost Derivative Graph - Basic ICP - "+to_string(GD_NITER_MAX)+" GD iter - "+to_string(DBICP_NITER_MAX)+" DBCIP iter.jpg";
+        //approx_err_der.save(filename.c_str());
+
+
     }
 
 }
@@ -231,6 +267,27 @@ double DBICP::Beaton_Tukey_rho(const double &u) const {
         return BT_A*BT_A/6*(1-pow(1-pow(u/BT_A,2),3));
     }
 }
+
+
+
+
+/*****************************************
+*           BOOTSTRAP FUNCTIONS          *
+******************************************/
+
+void DBICP::bootstrap_region(int iter_nb) {
+    if (iter_nb>0) {
+        cout << costs[iter_nb-1]-costs[iter_nb] << endl;
+        if (costs[iter_nb-1]-costs[iter_nb] < RB_THRESHOLD) {
+            box.expand_in_all_dir(REGION_GROWTH,0,0,HEIGHT,WIDTH);
+            cout << "New bootstrap region:" << endl;
+            box.display();
+        }
+    }
+}
+
+
+
 
 
 /*****************************************

@@ -123,3 +123,21 @@ void PointSet::is_in_bounding_box(const BoundingBox &box,vector<bool> &mask_resu
          mask_result[i] = (*this)[i].is_in_bounding_box(box);
     }
 }
+
+
+
+/*****************************************
+*             MIN FUNCTIONS              *
+******************************************/
+
+void PointSet::min_wrt_dist(const PointSet &other, double &min_dist, int &min_ind) const {
+    min_dist = INFINITY;
+    for (unsigned int i=0;i<this->size();i++) {
+        if (min_dist > (*this)[i].get_dist_with(other[i])) {
+            min_dist = (*this)[i].get_dist_with(other[i]);
+            min_ind = i;
+        }
+    }
+
+
+}

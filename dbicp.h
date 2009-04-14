@@ -41,6 +41,8 @@ private:
     void perform_optim_step();
     void step_stuff(CImgList<unsigned char> &steps,string step_name,int iter_nb);
 
+    void bootstrap_region(int iter_nb);
+
     void compute_corres(bool all_points=false);
     void draw_corres(const unsigned char color1[],const unsigned char color2[]);
 

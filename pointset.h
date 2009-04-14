@@ -20,6 +20,7 @@ public:
     double get_x_mean();
     double get_y_mean();
     void is_in_bounding_box(const BoundingBox &box,vector<bool> &result) const;
+    void min_wrt_dist(const PointSet &other, double &min_dist, int &min_ind) const;
 
 
 
