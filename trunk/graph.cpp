@@ -43,6 +43,7 @@ void Graph::draw(vector<double> values, const unsigned char color[],const char* 
     }
 
 
+
     double y_scaling_factor = dim_y/(max-min);
 
 

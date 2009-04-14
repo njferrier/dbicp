@@ -31,5 +31,19 @@ void BoundingBox::draw(CImg<unsigned char> &pic, const unsigned char color[]){
 }
 
 void BoundingBox::display(){
-    cout << "BoundingBox[x_min,y_min,x_max,y_max] : ["<<x_min<<","<<y_min<<","<<x_max<<","<<y_max<<"]"<<endl<<endl;
+    cout << "BoundingBox[x_min,y_min,x_max,y_max] : ["<<x_min<<", "<<y_min<<", "<<x_max<<", "<<y_max<<"]"<<endl<<endl;
+}
+
+void BoundingBox::expand_in_all_dir(double growth){
+    x_min -= growth;
+    y_min -= growth;
+    x_max += growth;
+    y_max += growth;
+}
+
+void BoundingBox::expand_in_all_dir(double growth, double xmin, double ymin, double xmax, double ymax){
+    x_min = max(x_min-growth,xmin);
+    y_min = max(y_min-growth,ymin);
+    x_max = min(x_max+growth,xmax);
+    y_max = min(y_max+growth,ymax);
 }

@@ -22,6 +22,9 @@ class BoundingBox {
 
         void display();
 
+        void expand_in_all_dir(double growth);
+        void expand_in_all_dir(double growth, double xmin, double xmax, double ymin, double ymax);
+
 
 
 
