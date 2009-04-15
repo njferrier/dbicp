@@ -13,6 +13,7 @@ public:
 
     Transfo();
     Transfo(double t11,double t12, double t13, double t14, double t15, double t16,double t21,double t22, double t23, double t24, double t25, double t26);
+    void assign(double t11,double t12, double t13, double t14, double t15, double t16,double t21,double t22, double t23, double t24, double t25, double t26);
     Transfo(double t11,double t12, double t13, double t21,double t22, double t23);
 
     void display() const;

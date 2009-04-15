@@ -1,0 +1,40 @@
+/*
+* Set of parameters to have a successfull result (with the dist, and not the scaled_dist)
+*/
+
+// Constants for Blackboard
+#define WIDTH 1000
+#define HEIGHT 1000
+#define DEPTH 1
+#define NB_CHANNELS 3
+
+// Constants for gradient descent
+#define RHO 1e-10
+#define EPSILON 1e-3
+#define GD_NITER_MAX 5
+
+// Constant for Beaton Tukey
+#define BT_A 1e7
+
+// Constant for DBICP
+#define DBICP_NITER_MAX 120
+
+// Constant for display
+#define TEMPORARY_DISPLAY_TIME 0
+
+// Constant for saving
+#define SAVE false
+
+// Constants for Step By Step
+#define STEP_BY_STEP true
+#define SAVE_STEPS false
+#define SAVE_VID false
+
+// Constant for Initial transfo
+#define INIT_WITH_BARY_TRANSL false
+
+// Constants for Region Bootstrapping
+#define REGION_GROWTH 30
+#define RB_THRESHOLD 6e4
+#define INIT_BR_AROUND_BEST_MATCH false
+#define BR_INIT_SIZE 150
