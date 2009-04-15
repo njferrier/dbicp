@@ -6,6 +6,7 @@
 #include <vector>
 #include "transfo.h"
 #include "similarity.h"
+#include "quadratic.h"
 #include "bounding_box.h"
 #include "tools.h"
 #include "cimg_patch.h"
@@ -52,6 +53,8 @@ private:
 
     Similarity get_optimal_similarity();
     Similarity get_optimal_similarity_using_gd();
+    Quadratic get_optimal_quadratic();
+    Quadratic get_optimal_quadratic_using_gd();
 
     void display(string legend="",bool temporary=false);
 

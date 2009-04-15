@@ -32,6 +32,21 @@ Transfo::Transfo(double t11,double t12, double t13, double t14, double t15, doub
     this->t26=t26;
 }
 
+void Transfo::assign(double t11,double t12, double t13, double t14, double t15, double t16,double t21,double t22, double t23, double t24, double t25, double t26){
+    this->t11=t11;
+    this->t12=t12;
+    this->t13=t13;
+    this->t14=t14;
+    this->t15=t15;
+    this->t16=t16;
+    this->t21=t21;
+    this->t22=t22;
+    this->t23=t23;
+    this->t24=t24;
+    this->t25=t25;
+    this->t26=t26;
+}
+
 
 Transfo::Transfo(double t11,double t12, double t13, double t21,double t22, double t23){
     this->t11=t11;
@@ -67,9 +82,8 @@ void Transfo::operator()(const Point2D &point,Point2D &result) const {
 
 void Transfo::operator()(const PointSet &ps,PointSet &result) const {
     result.resize(ps.size());
-    for (unsigned int i=0;i<ps.size();i++){
+    for (unsigned int i=0;i<ps.size();i++)
         this->operator()(ps[i],result[i]);
-    }
 }
 
 void Transfo::operator()(const PointSet &ps,PointSet &result, const vector<bool> &mask) const {

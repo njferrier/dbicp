@@ -2,6 +2,7 @@
 #include "transfo.h"
 #include "Point2D.h"
 #include "similarity.h"
+#include "quadratic.h"
 #include "pointset.h"
 #include "dbicp.h"
 #include "CImg.h"
@@ -16,9 +17,19 @@ int main() {
          << "=====================================================" << endl << endl;
 
     PointSet ps,ps1,ps2;
+
     Similarity S(250,0.7,0.6,200);
     cout << "Similarity used to move points:" << endl;
     S.display();
+
+/*
+    cout << "Quadratic used to move points:" << endl;
+    Quadratic Q(450,    0.5,    0.4,    1e-4,  -1e-4,  -5e-4,
+                100,    -.4,    .5,     1e-4,  1e-4,  4e-4);
+
+    Q.display();
+*/
+
 
     /**
     * Test with set 1 and S

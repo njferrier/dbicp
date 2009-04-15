@@ -42,6 +42,12 @@ void BoundingBox::expand_in_all_dir(double growth){
 }
 
 void BoundingBox::expand_in_all_dir(double growth, double xmin, double ymin, double xmax, double ymax){
+
+    if (x_min != max(x_min-growth,xmin) || y_min != max(y_min-growth,ymin) || x_max != min(x_max+growth,xmax) || y_max != min(y_max+growth,ymax)) {
+        cout << "Bootstrap region resized:" << endl;
+        display();
+    }
+
     x_min = max(x_min-growth,xmin);
     y_min = max(y_min-growth,ymin);
     x_max = min(x_max+growth,xmax);

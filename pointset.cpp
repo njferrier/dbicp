@@ -71,6 +71,43 @@ double PointSet::get_dist_with(const PointSet &other,const vector<bool> &mask) c
 }
 
 
+double PointSet::get_scaled_dist_with(const PointSet &other,const vector<bool> &mask) const {
+    /**
+    * Sum of the distances where the value of the mask is true
+    */
+
+    double dist=0;
+    if (this->size()==other.size() && this->size()==mask.size()) {
+        double mean = 0, sigma = 0;
+        for (unsigned int i=0;i<this->size();i++) {
+            if (mask[i])
+                mean += (*this)[i].get_dist_with(other[i]);
+        }
+        mean = mean/this->size();
+
+        for (unsigned int i=0;i<this->size();i++) {
+            if (mask[i])
+                dist += (*this)[i].get_dist_with(other[i]);
+                sigma += pow((*this)[i].get_dist_with(other[i])-mean,2);
+        }
+
+        sigma = sqrt(sigma/this->size());
+
+        if (sigma==0) {
+            cout << "FATAL ERROR: division by 0 in PointSet::get_scaled_dist_with" << endl;
+            exit(2);
+        }
+        dist /= sigma;
+
+    }
+    else {
+        cout << "ERROR in PointSet: point set 1 and 2 and mask must have the same sizes!" <<endl;
+        exit(2);
+    }
+    return dist;
+}
+
+
 /*****************************************
 *           FILLING FUNCTIONS            *
 ******************************************/

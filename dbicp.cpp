@@ -1,7 +1,5 @@
 #include "dbicp.h"
 
-#define INF 100000000
-
 // Constants for Blackboard
 #define WIDTH 1000
 #define HEIGHT 1000
@@ -9,23 +7,21 @@
 #define NB_CHANNELS 3
 
 // Constants for gradient descent
-#define RHO_0 1e-8
-#define RHO_1 1e-8
-#define EPSILON_0 1e-3
-#define EPSILON_1 1e-3
-#define GD_NITER_MAX 100
+#define RHO 1e-10
+#define EPSILON 1e-3
+#define GD_NITER_MAX 5
 
 // Constant for Beaton Tukey
 #define BT_A 1e7
 
 // Constant for DBICP
-#define DBICP_NITER_MAX 200
+#define DBICP_NITER_MAX 80
 
 // Constant for display
-#define TEMPORARY_DISPLAY_TIME 10
+#define TEMPORARY_DISPLAY_TIME 0
 
 // Constant for saving
-#define SAVE true
+#define SAVE false
 
 // Constants for Step By Step
 #define STEP_BY_STEP true
@@ -37,9 +33,9 @@
 
 // Constants for Region Bootstrapping
 #define REGION_GROWTH 30
-#define RB_THRESHOLD 1e2
-#define INIT_BR_AROUND_BEST_MATCH true
-#define BR_INIT_SIZE 30
+#define RB_THRESHOLD 6e4
+#define INIT_BR_AROUND_BEST_MATCH false
+#define BR_INIT_SIZE 150
 
 using namespace cimg_library;
 using namespace std;
@@ -58,25 +54,19 @@ DBICP::DBICP(PointSet ps1, PointSet ps2) {
     ps2_NN2img.resize(ps1.size());
     box_mask.resize(ps1.size());
 
+    Blackboard.assign(WIDTH,HEIGHT,DEPTH,NB_CHANNELS);
+
     costs.resize(DBICP_NITER_MAX);
     cost_graph.assign(1000,1000);
 
-    transfo=Transfo();
 
-    if (INIT_WITH_BARY_TRANSL) {
-        // Initialize with mean translation instead of identity
-        transfo.t11 = ps2.get_x_mean()-ps1.get_x_mean();
-        transfo.t21 = ps2.get_y_mean()-ps1.get_y_mean();
-    }
 
-    //transfo.t11 = 250;
-    //transfo.t21 = 200;
-
-    transfo(ps1,ps1_img);
-
-    Blackboard.assign(WIDTH,HEIGHT,DEPTH,NB_CHANNELS);
+    /*
+    *   Bootstrap region initialization
+    */
 
     if (INIT_BR_AROUND_BEST_MATCH) {
+        transfo(ps1,ps1_img);
         double dummy;
         int min_ind;
         ps1_img.min_wrt_dist(ps2, dummy, min_ind);
@@ -84,7 +74,7 @@ DBICP::DBICP(PointSet ps1, PointSet ps2) {
 
         box.assign(max(0.0,x_init-BR_INIT_SIZE/2),max(0.0,y_init-BR_INIT_SIZE/2),min(double(WIDTH),x_init+BR_INIT_SIZE/2),min(double(HEIGHT),y_init+BR_INIT_SIZE/2));
     } else {
-        box.assign(0,0,1000,900);
+        box.assign(0,0,1000,1000);
     }
 
     cout << "Initial Bootstrap Region:" << endl;
@@ -92,8 +82,31 @@ DBICP::DBICP(PointSet ps1, PointSet ps2) {
 
     ps1.is_in_bounding_box(box,box_mask);
 
+
+
+    /*
+    *   Transfo initialization
+    */
+
+    transfo=Transfo();
+
+    if (INIT_WITH_BARY_TRANSL) {
+        transfo.t11 = ps2.get_x_mean()-ps1.get_x_mean();
+        transfo.t21 = ps2.get_y_mean()-ps1.get_y_mean();
+    }
+
+    transfo.t11 = 250;
+    transfo.t21 = 200;
+
+    //transfo = Quadratic(450,    0.55,    0.35,    1e-4,  -1e-4,  -4e-4,
+      //                      100,    -.35,    .55,     1e-4,  1e-4,  4e-4);
+
     cout << "Initial transformation:"<< endl;
     transfo.display();
+
+
+
+
 }
 
 
@@ -108,11 +121,14 @@ void DBICP::perform() {
     CImgList<unsigned char> steps;
 
     for (unsigned int i=0;i<DBICP_NITER_MAX;i++){
+        /*
+        *   Core part
+        */
         perform_matching_step(); step_stuff(steps,"Matching",i);
         perform_optim_step(); step_stuff(steps,"Optim",i);
         bootstrap_region(i);
         costs[i]=cost(transfo);
-
+        //cout << costs[i] << endl;
     }
 
     cout << "Estimated transformation:" << endl;
@@ -125,7 +141,6 @@ void DBICP::perform() {
         steps.save_ffmpeg(filename.c_str(),0,steps.size-1,fps);
         cout << "Done." << endl << endl;
     }
-
 
     display(string("Final result"));
 
@@ -196,7 +211,7 @@ void DBICP::compute_corres(bool all_points) {
 
     for (unsigned int i=0;i<ps1.size();i++) {
         if (box_mask[i] or all_points) {
-            double error_i_min = INF;
+            double error_i_min = INFINITY;
 
             for (unsigned int j=0;j<ps2.size();j++) {
                 if (ps1_img[i].get_dist_with(ps2[j])<error_i_min) {
@@ -220,31 +235,70 @@ void DBICP::perform_optim_step() {
     // We use only similarity for now
     Similarity S=get_optimal_similarity();
     transfo=S;
+    //Quadratic Q=get_optimal_quadratic();
+    //transfo=Q;
+
 }
 
 Similarity DBICP::get_optimal_similarity() {
     return get_optimal_similarity_using_gd();
 }
 
+Quadratic DBICP::get_optimal_quadratic() {
+    return get_optimal_quadratic_using_gd();
+}
+
+
 Similarity DBICP::get_optimal_similarity_using_gd() {
     /**
     * Get the optimal similarity using gradient descent.
     * It uses the cost function DBICP::cost
-    * The number of iterations if GD_NITER_MAX
+    * The number of iterations is GD_NITER_MAX
     */
 
     Similarity S(transfo.t11,transfo.t12,transfo.t13,transfo.t21);
 
     for (unsigned int i=0;i<GD_NITER_MAX;i++){
-        S.t11 -= RHO_0*(cost(Similarity(S.t11+EPSILON_0,S.t12,S.t13,S.t21))-cost(S))/EPSILON_0;
-        S.t12 -= RHO_1*(cost(Similarity(S.t11,S.t12+EPSILON_1,S.t13,S.t21))-cost(S))/EPSILON_1;
-        S.t13 -= RHO_1*(cost(Similarity(S.t11,S.t12,S.t13+EPSILON_1,S.t21))-cost(S))/EPSILON_1;
-        S.t21 -= RHO_0*(cost(Similarity(S.t11,S.t12,S.t13,S.t21+EPSILON_0))-cost(S))/EPSILON_0;
+        double t11_new = S.t11 - RHO*(cost(Similarity(S.t11+EPSILON,S.t12,S.t13,S.t21))-cost(S))/EPSILON;
+        double t12_new = S.t12 - RHO*(cost(Similarity(S.t11,S.t12+EPSILON,S.t13,S.t21))-cost(S))/EPSILON;
+        double t13_new = S.t13 - RHO*(cost(Similarity(S.t11,S.t12,S.t13+EPSILON,S.t21))-cost(S))/EPSILON;
+        double t21_new = S.t21 - RHO*(cost(Similarity(S.t11,S.t12,S.t13,S.t21+EPSILON))-cost(S))/EPSILON;
 
-        S.assign(S.t11,S.t12,S.t13,S.t21);
+        S.assign(t11_new, t12_new, t13_new, t21_new);
     }
 
     return S;
+
+}
+
+Quadratic DBICP::get_optimal_quadratic_using_gd() {
+    /**
+    * Get the optimal quadratic using gradient descent.
+    * It uses the cost function DBICP::cost
+    * The number of iterations is GD_NITER_MAX
+    */
+
+    Quadratic Q(transfo.t11,transfo.t12,transfo.t13,transfo.t14,transfo.t15,transfo.t16,transfo.t21,transfo.t22,transfo.t23,transfo.t24,transfo.t25,transfo.t26);
+
+    for (unsigned int i=0;i<GD_NITER_MAX;i++){
+        double t11_new = Q.t11 - RHO*(cost(Quadratic(Q.t11+EPSILON,Q.t12,Q.t13,Q.t14,Q.t15,Q.t16,Q.t21,Q.t22,Q.t23,Q.t24,Q.t25,Q.t26))-cost(Q))/EPSILON;
+        double t12_new = Q.t12 - RHO*(cost(Quadratic(Q.t11,Q.t12+EPSILON,Q.t13,Q.t14,Q.t15,Q.t16,Q.t21,Q.t22,Q.t23,Q.t24,Q.t25,Q.t26))-cost(Q))/EPSILON;
+        double t13_new = Q.t13 - RHO*(cost(Quadratic(Q.t11,Q.t12,Q.t13+EPSILON,Q.t14,Q.t15,Q.t16,Q.t21,Q.t22,Q.t23,Q.t24,Q.t25,Q.t26))-cost(Q))/EPSILON;
+        double t14_new = Q.t14 - RHO*(cost(Quadratic(Q.t11,Q.t12,Q.t13,Q.t14+EPSILON,Q.t15,Q.t16,Q.t21,Q.t22,Q.t23,Q.t24,Q.t25,Q.t26))-cost(Q))/EPSILON;
+        double t15_new = Q.t15 - RHO*(cost(Quadratic(Q.t11,Q.t12,Q.t13,Q.t14,Q.t15+EPSILON,Q.t16,Q.t21,Q.t22,Q.t23,Q.t24,Q.t25,Q.t26))-cost(Q))/EPSILON;
+        double t16_new = Q.t16 - RHO*(cost(Quadratic(Q.t11,Q.t12,Q.t13,Q.t14,Q.t15,Q.t16+EPSILON,Q.t21,Q.t22,Q.t23,Q.t24,Q.t25,Q.t26))-cost(Q))/EPSILON;
+        double t21_new = Q.t21 - RHO*(cost(Quadratic(Q.t11,Q.t12,Q.t13,Q.t14,Q.t15,Q.t16,Q.t21+EPSILON,Q.t22,Q.t23,Q.t24,Q.t25,Q.t26))-cost(Q))/EPSILON;
+        double t22_new = Q.t22 - RHO*(cost(Quadratic(Q.t11,Q.t12,Q.t13,Q.t14,Q.t15,Q.t16,Q.t21,Q.t22+EPSILON,Q.t23,Q.t24,Q.t25,Q.t26))-cost(Q))/EPSILON;
+        double t23_new = Q.t23 - RHO*(cost(Quadratic(Q.t11,Q.t12,Q.t13,Q.t14,Q.t15,Q.t16,Q.t21,Q.t22,Q.t23+EPSILON,Q.t24,Q.t25,Q.t26))-cost(Q))/EPSILON;
+        double t24_new = Q.t24 - RHO*(cost(Quadratic(Q.t11,Q.t12,Q.t13,Q.t14,Q.t15,Q.t16,Q.t21,Q.t22,Q.t23,Q.t24+EPSILON,Q.t25,Q.t26))-cost(Q))/EPSILON;
+        double t25_new = Q.t25 - RHO*(cost(Quadratic(Q.t11,Q.t12,Q.t13,Q.t14,Q.t15,Q.t16,Q.t21,Q.t22,Q.t23,Q.t24,Q.t25+EPSILON,Q.t26))-cost(Q))/EPSILON;
+        double t26_new = Q.t26 - RHO*(cost(Quadratic(Q.t11,Q.t12,Q.t13,Q.t14,Q.t15,Q.t16,Q.t21,Q.t22,Q.t23,Q.t24,Q.t25,Q.t26+EPSILON))-cost(Q))/EPSILON;
+
+        Q.assign(t11_new,t12_new,t13_new,t14_new,t15_new,t16_new,t21_new,t22_new,t23_new,t24_new,t25_new,t26_new);
+
+    }
+
+    return Q;
 
 }
 
@@ -255,6 +309,7 @@ double DBICP::cost(const Transfo &T) {
     T(ps1,ps1_img,box_mask); // Just to be sure the image points are computed
 
     return Beaton_Tukey_rho(ps1_img.get_dist_with(ps2_NN2img,box_mask));
+    //return Beaton_Tukey_rho(ps1_img.get_scaled_dist_with(ps2_NN2img,box_mask));
 }
 
 double DBICP::Beaton_Tukey_rho(const double &u) const {
@@ -277,11 +332,9 @@ double DBICP::Beaton_Tukey_rho(const double &u) const {
 
 void DBICP::bootstrap_region(int iter_nb) {
     if (iter_nb>0) {
-        cout << costs[iter_nb-1]-costs[iter_nb] << endl;
+        //cout << costs[iter_nb-1]-costs[iter_nb] << endl;
         if (costs[iter_nb-1]-costs[iter_nb] < RB_THRESHOLD) {
             box.expand_in_all_dir(REGION_GROWTH,0,0,HEIGHT,WIDTH);
-            cout << "New bootstrap region:" << endl;
-            box.display();
         }
     }
 }
