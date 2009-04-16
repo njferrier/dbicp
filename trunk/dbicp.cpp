@@ -7,21 +7,23 @@
 #define NB_CHANNELS 3
 
 // Constants for gradient descent
-#define RHO 1e-10
-#define EPSILON 1e-3
-#define GD_NITER_MAX 5
+#define RHO 1e-9
+#define EPSILON 1e-7
+#define GD_NITER_MAX 10
 
 // Constant for Beaton Tukey
 #define BT_A 1e7
 
 // Constant for DBICP
-#define DBICP_NITER_MAX 80
+#define DBICP_NITER_MAX 40
 
 // Constant for display
-#define TEMPORARY_DISPLAY_TIME 0
+#define TEMPORARY_DISPLAY_TIME 1e5
 
 // Constant for saving
 #define SAVE false
+#define NB_FRAMES_COPIED 40
+#define NB_COPIES 3
 
 // Constants for Step By Step
 #define STEP_BY_STEP true
@@ -29,13 +31,16 @@
 #define SAVE_VID false
 
 // Constant for Initial transfo
-#define INIT_WITH_BARY_TRANSL false
+#define INIT_WITH_BARY_TRANSL true
 
 // Constants for Region Bootstrapping
 #define REGION_GROWTH 30
 #define RB_THRESHOLD 6e4
 #define INIT_BR_AROUND_BEST_MATCH false
 #define BR_INIT_SIZE 150
+
+#define DOF_PENAL  800//-INFINITY // Uncomment the -INFINITY to force the use of Quadratics. Comment it if you want auto-selection.
+
 
 using namespace cimg_library;
 using namespace std;
@@ -98,17 +103,19 @@ DBICP::DBICP(PointSet ps1, PointSet ps2) {
     transfo.t11 = 250;
     transfo.t21 = 200;
 
-    //transfo = Quadratic(450,    0.55,    0.35,    1e-4,  -1e-4,  -4e-4,
-      //                      100,    -.35,    .55,     1e-4,  1e-4,  4e-4);
+  //  transfo = Quadratic(250, 0.7,        0.6,        0,       0,       0,
+  //                      200, -0.6,       0.7,        0,       0,       0);
+
+
 
     cout << "Initial transformation:"<< endl;
     transfo.display();
 
+    compute_corres();
 
 
 
 }
-
 
 
 /*****************************************
@@ -119,16 +126,18 @@ void DBICP::perform() {
     cout << "Performing DBICP..." << endl<< endl;
 
     CImgList<unsigned char> steps;
+    string transfo_name;
+    bool quadratic_enabled = true;
 
     for (unsigned int i=0;i<DBICP_NITER_MAX;i++){
         /*
         *   Core part
         */
-        perform_matching_step(); step_stuff(steps,"Matching",i);
-        perform_optim_step(); step_stuff(steps,"Optim",i);
+        perform_matching_step(); step_stuff(steps,"Matching",transfo_name,i);
+        perform_optim_step(transfo_name,quadratic_enabled); step_stuff(steps,"Optim",transfo_name,i);
         bootstrap_region(i);
         costs[i]=cost(transfo);
-        //cout << costs[i] << endl;
+
     }
 
     cout << "Estimated transformation:" << endl;
@@ -137,12 +146,12 @@ void DBICP::perform() {
     if (STEP_BY_STEP && SAVE_VID) {
         cout << "Saving video... ";
         const unsigned int fps=1;
-        string filename = "Output/Basic ICP - "+to_string(GD_NITER_MAX)+" GD iter - "+to_string(DBICP_NITER_MAX)+" DBCIP iter.mpg";
+        string filename = "Output/ICP plus Model Bootstrap - "+to_string(GD_NITER_MAX)+" GD iter - "+to_string(DBICP_NITER_MAX)+" DBCIP iter.mpg";
         steps.save_ffmpeg(filename.c_str(),0,steps.size-1,fps);
         cout << "Done." << endl << endl;
     }
 
-    display(string("Final result"));
+    display(string("Final result"),transfo_name);
 
     unsigned char COLOR_red[]={255,0,0};
     cost_graph.draw(costs,COLOR_red,"Error cost");
@@ -159,11 +168,11 @@ void DBICP::perform() {
     approx_err_der.display("dE/dt");
 
     if (SAVE) {
-        string filename="Output/Basic ICP - "+to_string(GD_NITER_MAX)+" GD iter - "+to_string(DBICP_NITER_MAX)+" DBCIP iter.jpg";
+        string filename="Output/ICP plus Model Bootstrap - "+to_string(GD_NITER_MAX)+" GD iter - "+to_string(DBICP_NITER_MAX)+" DBCIP iter.jpg";
         Blackboard.save(filename.c_str());
-        filename="Output/Cost Graph - Basic ICP - "+to_string(GD_NITER_MAX)+" GD iter - "+to_string(DBICP_NITER_MAX)+" DBCIP iter.jpg";
+        filename="Output/Cost Graph - ICP plus Model Bootstrap - "+to_string(GD_NITER_MAX)+" GD iter - "+to_string(DBICP_NITER_MAX)+" DBCIP iter.jpg";
         cost_graph.save(filename.c_str());
-        //filename="Output/Approx Cost Derivative Graph - Basic ICP - "+to_string(GD_NITER_MAX)+" GD iter - "+to_string(DBICP_NITER_MAX)+" DBCIP iter.jpg";
+        //filename="Output/Approx Cost Derivative Graph - ICP plus Model Bootstrap - "+to_string(GD_NITER_MAX)+" GD iter - "+to_string(DBICP_NITER_MAX)+" DBCIP iter.jpg";
         //approx_err_der.save(filename.c_str());
 
 
@@ -175,18 +184,18 @@ void DBICP::perform() {
 /*****************************************
 *       FUNCTIONS FOR STEP BY STEP       *
 ******************************************/
-void DBICP::step_stuff(CImgList<unsigned char> &steps,string step_name,int iter_nb) {
+void DBICP::step_stuff(CImgList<unsigned char> &steps,string step_name,string transfo_name, int iter_nb) {
     if (STEP_BY_STEP) {
         string legend="Iteration #"+to_string(iter_nb+1)+" - "+step_name+" step";
-        display(legend,true);
+        display(legend,transfo_name,true);
         if (SAVE_STEPS) {
-            string filename="Output/Step by Step/Basic ICP - Iteration #"+to_string(iter_nb+1)+" - "+step_name+" step.jpg";
+            string filename="Output/Step by Step/ICP plus Model Bootstrap - Iteration #"+to_string(iter_nb+1)+" - "+step_name+" step.jpg";
             Blackboard.save(filename.c_str());
         }
         if (SAVE_VID){
             steps.insert(Blackboard);
-            if (iter_nb<5) {
-                for (unsigned int fps_patch=0;fps_patch<2;fps_patch++) // Extra pictures at the beginning
+            if (iter_nb<NB_FRAMES_COPIED) {
+                for (unsigned int fps_patch=0;fps_patch<NB_COPIES;fps_patch++) // Extra pictures at the beginning
                     steps.insert(Blackboard);
             }
         }
@@ -231,12 +240,21 @@ void DBICP::compute_corres(bool all_points) {
 *      OPTIMISATION FUNCTIONS            *
 ******************************************/
 
-void DBICP::perform_optim_step() {
-    // We use only similarity for now
+void DBICP::perform_optim_step(string &transfo_name, bool quadratic_enabled) {
     Similarity S=get_optimal_similarity();
-    transfo=S;
-    //Quadratic Q=get_optimal_quadratic();
-    //transfo=Q;
+    Quadratic Q=get_optimal_quadratic();
+
+    double cost_best_sim = cost(S);
+    double cost_best_quad = cost(Q);
+
+    if (cost_best_sim > cost_best_quad+6*DOF_PENAL && quadratic_enabled) {
+        transfo=Q;
+        transfo_name = "Quadratic";
+    }
+    else {
+        transfo=S;
+        transfo_name = "Similarity";
+    }
 
 }
 
@@ -280,19 +298,22 @@ Quadratic DBICP::get_optimal_quadratic_using_gd() {
 
     Quadratic Q(transfo.t11,transfo.t12,transfo.t13,transfo.t14,transfo.t15,transfo.t16,transfo.t21,transfo.t22,transfo.t23,transfo.t24,transfo.t25,transfo.t26);
 
+    double TEST = 1e-6;
+    double TESTb = 1e-6;
+
     for (unsigned int i=0;i<GD_NITER_MAX;i++){
         double t11_new = Q.t11 - RHO*(cost(Quadratic(Q.t11+EPSILON,Q.t12,Q.t13,Q.t14,Q.t15,Q.t16,Q.t21,Q.t22,Q.t23,Q.t24,Q.t25,Q.t26))-cost(Q))/EPSILON;
         double t12_new = Q.t12 - RHO*(cost(Quadratic(Q.t11,Q.t12+EPSILON,Q.t13,Q.t14,Q.t15,Q.t16,Q.t21,Q.t22,Q.t23,Q.t24,Q.t25,Q.t26))-cost(Q))/EPSILON;
         double t13_new = Q.t13 - RHO*(cost(Quadratic(Q.t11,Q.t12,Q.t13+EPSILON,Q.t14,Q.t15,Q.t16,Q.t21,Q.t22,Q.t23,Q.t24,Q.t25,Q.t26))-cost(Q))/EPSILON;
-        double t14_new = Q.t14 - RHO*(cost(Quadratic(Q.t11,Q.t12,Q.t13,Q.t14+EPSILON,Q.t15,Q.t16,Q.t21,Q.t22,Q.t23,Q.t24,Q.t25,Q.t26))-cost(Q))/EPSILON;
-        double t15_new = Q.t15 - RHO*(cost(Quadratic(Q.t11,Q.t12,Q.t13,Q.t14,Q.t15+EPSILON,Q.t16,Q.t21,Q.t22,Q.t23,Q.t24,Q.t25,Q.t26))-cost(Q))/EPSILON;
-        double t16_new = Q.t16 - RHO*(cost(Quadratic(Q.t11,Q.t12,Q.t13,Q.t14,Q.t15,Q.t16+EPSILON,Q.t21,Q.t22,Q.t23,Q.t24,Q.t25,Q.t26))-cost(Q))/EPSILON;
+        double t14_new = Q.t14 - TESTb*RHO*(cost(Quadratic(Q.t11,Q.t12,Q.t13,Q.t14+EPSILON*TEST,Q.t15,Q.t16,Q.t21,Q.t22,Q.t23,Q.t24,Q.t25,Q.t26))-cost(Q))/EPSILON/TEST;
+        double t15_new = Q.t15 - TESTb*RHO*(cost(Quadratic(Q.t11,Q.t12,Q.t13,Q.t14,Q.t15+EPSILON*TEST,Q.t16,Q.t21,Q.t22,Q.t23,Q.t24,Q.t25,Q.t26))-cost(Q))/EPSILON/TEST;
+        double t16_new = Q.t16 - TESTb*RHO*(cost(Quadratic(Q.t11,Q.t12,Q.t13,Q.t14,Q.t15,Q.t16+EPSILON*TEST,Q.t21,Q.t22,Q.t23,Q.t24,Q.t25,Q.t26))-cost(Q))/EPSILON/TEST;
         double t21_new = Q.t21 - RHO*(cost(Quadratic(Q.t11,Q.t12,Q.t13,Q.t14,Q.t15,Q.t16,Q.t21+EPSILON,Q.t22,Q.t23,Q.t24,Q.t25,Q.t26))-cost(Q))/EPSILON;
         double t22_new = Q.t22 - RHO*(cost(Quadratic(Q.t11,Q.t12,Q.t13,Q.t14,Q.t15,Q.t16,Q.t21,Q.t22+EPSILON,Q.t23,Q.t24,Q.t25,Q.t26))-cost(Q))/EPSILON;
         double t23_new = Q.t23 - RHO*(cost(Quadratic(Q.t11,Q.t12,Q.t13,Q.t14,Q.t15,Q.t16,Q.t21,Q.t22,Q.t23+EPSILON,Q.t24,Q.t25,Q.t26))-cost(Q))/EPSILON;
-        double t24_new = Q.t24 - RHO*(cost(Quadratic(Q.t11,Q.t12,Q.t13,Q.t14,Q.t15,Q.t16,Q.t21,Q.t22,Q.t23,Q.t24+EPSILON,Q.t25,Q.t26))-cost(Q))/EPSILON;
-        double t25_new = Q.t25 - RHO*(cost(Quadratic(Q.t11,Q.t12,Q.t13,Q.t14,Q.t15,Q.t16,Q.t21,Q.t22,Q.t23,Q.t24,Q.t25+EPSILON,Q.t26))-cost(Q))/EPSILON;
-        double t26_new = Q.t26 - RHO*(cost(Quadratic(Q.t11,Q.t12,Q.t13,Q.t14,Q.t15,Q.t16,Q.t21,Q.t22,Q.t23,Q.t24,Q.t25,Q.t26+EPSILON))-cost(Q))/EPSILON;
+        double t24_new = Q.t24 - TESTb*RHO*(cost(Quadratic(Q.t11,Q.t12,Q.t13,Q.t14,Q.t15,Q.t16,Q.t21,Q.t22,Q.t23,Q.t24+EPSILON*TEST,Q.t25,Q.t26))-cost(Q))/EPSILON/TEST;
+        double t25_new = Q.t25 - TESTb*RHO*(cost(Quadratic(Q.t11,Q.t12,Q.t13,Q.t14,Q.t15,Q.t16,Q.t21,Q.t22,Q.t23,Q.t24,Q.t25+EPSILON*TEST,Q.t26))-cost(Q))/EPSILON/TEST;
+        double t26_new = Q.t26 - TESTb*RHO*(cost(Quadratic(Q.t11,Q.t12,Q.t13,Q.t14,Q.t15,Q.t16,Q.t21,Q.t22,Q.t23,Q.t24,Q.t25,Q.t26+EPSILON*TEST))-cost(Q))/EPSILON/TEST;
 
         Q.assign(t11_new,t12_new,t13_new,t14_new,t15_new,t16_new,t21_new,t22_new,t23_new,t24_new,t25_new,t26_new);
 
@@ -332,7 +353,6 @@ double DBICP::Beaton_Tukey_rho(const double &u) const {
 
 void DBICP::bootstrap_region(int iter_nb) {
     if (iter_nb>0) {
-        //cout << costs[iter_nb-1]-costs[iter_nb] << endl;
         if (costs[iter_nb-1]-costs[iter_nb] < RB_THRESHOLD) {
             box.expand_in_all_dir(REGION_GROWTH,0,0,HEIGHT,WIDTH);
         }
@@ -356,8 +376,13 @@ void DBICP::draw_corres(const unsigned char color1[],const unsigned char color2[
 
     for (unsigned int i=0; i<ps1.size();i++){
         if (box_mask[i]) {
-            Blackboard.draw_arrow(arrow_p(ps1[i].x),arrow_p(ps1[i].y),arrow_p(ps1_img[i].x),arrow_p(ps1_img[i].y),color1,.5,30,8);
-            Blackboard.draw_arrow(arrow_p(ps1_img[i].x),arrow_p(ps1_img[i].y),arrow_p(ps2_NN2img[i].x),arrow_p(ps2_NN2img[i].y),color1,.5,30,8);
+
+           Blackboard.draw_arrow(arrow_p(ps1[i].x),arrow_p(ps1[i].y),arrow_p(ps1_img[i].x),arrow_p(ps1_img[i].y),color1,.5,30,8);
+           Blackboard.draw_arrow(arrow_p(ps1_img[i].x),arrow_p(ps1_img[i].y),arrow_p(ps2_NN2img[i].x),arrow_p(ps2_NN2img[i].y),color1,.5,30,8);
+
+            // Huge arrows
+            //Blackboard.draw_arrow(arrow_p(ps1[i].x),arrow_p(ps1[i].y),arrow_p(ps1_img[i].x),arrow_p(ps1_img[i].y),color1);
+            //Blackboard.draw_arrow(arrow_p(ps1_img[i].x),arrow_p(ps1_img[i].y),arrow_p(ps2_NN2img[i].x),arrow_p(ps2_NN2img[i].y),color1);
         }
         else {
             Blackboard.draw_arrow(arrow_p(ps1[i].x),arrow_p(ps1[i].y),arrow_p(ps1_img[i].x),arrow_p(ps1_img[i].y),color2,.5,8,5);
@@ -366,7 +391,7 @@ void DBICP::draw_corres(const unsigned char color1[],const unsigned char color2[
     }
 }
 
-void DBICP::display(string legend, bool temporary) {
+void DBICP::display(string legend, string legend2, bool temporary) {
 
     // Update everything for ALL the points (not only the one in the bounding box)
     transfo(ps1,ps1_img);
@@ -387,6 +412,7 @@ void DBICP::display(string legend, bool temporary) {
     const int font_size = 35;
 
     Blackboard.draw_text(400,30,legend.c_str(),COLOR_orange,COLOR_black,1,font_size);
+    Blackboard.draw_text(700,900,legend2.c_str(),COLOR_purple,COLOR_black,1,font_size);
 
     Blackboard_disp << Blackboard;
     Blackboard_disp.show();

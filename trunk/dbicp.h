@@ -39,8 +39,8 @@ private:
     vector<double> costs;
 
     void perform_matching_step();
-    void perform_optim_step();
-    void step_stuff(CImgList<unsigned char> &steps,string step_name,int iter_nb);
+    void perform_optim_step(string &transfo_name, bool quadratic_enabled);
+    void step_stuff(CImgList<unsigned char> &steps,string step_name, string transfo_name, int iter_nb);
 
     void bootstrap_region(int iter_nb);
 
@@ -56,8 +56,7 @@ private:
     Quadratic get_optimal_quadratic();
     Quadratic get_optimal_quadratic_using_gd();
 
-    void display(string legend="",bool temporary=false);
-
+    void display(string legend="",string legend2="",bool temporary=false);
 
 
 
